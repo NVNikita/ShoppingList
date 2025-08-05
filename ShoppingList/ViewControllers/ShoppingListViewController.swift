@@ -12,6 +12,8 @@ final class ShoppingListViewController: UIViewController {
     private var shoppingTableView = UITableView()
     private let addButton = UIButton()
     private let deleteButton = UIButton()
+    private var foodList = ["banana", "pecan", "pasta", "apple", "orange"]
+    private var selectedItems: Set<String> = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,7 +25,8 @@ final class ShoppingListViewController: UIViewController {
     
     private func setupTable() {
         shoppingTableView.dataSource = self
-        shoppingTableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        shoppingTableView.delegate = self
+        shoppingTableView.register(ShoppingListViewCell.self, forCellReuseIdentifier: "cell")
     }
     
     private func setupUI() {
@@ -73,18 +76,52 @@ final class ShoppingListViewController: UIViewController {
     }
     
     @objc private func deleteButtonTapped() {
-        print("deleteButton tap")
+        foodList = foodList.filter { !selectedItems.contains($0) }
+        selectedItems.removeAll()
+        shoppingTableView.reloadData()
     }
 }
 
-extension ShoppingListViewController: UITableViewDataSource {
+extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate {
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        1
+        return foodList.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.backgroundColor = .systemFill
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! ShoppingListViewCell
+        
+        cell.selectionStyle = .none
+        
+        let item = foodList[indexPath.row]
+        cell.configure(
+            title: item,
+            isActive: selectedItems.contains(item)
+        )
+        
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = foodList[indexPath.row]
+        
+        if selectedItems.contains(item) {
+            selectedItems.remove(item)
+        } else {
+            selectedItems.insert(item)
+        }
+        
+        tableView.reloadRows(at: [indexPath], with: .automatic)
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { (_, _, completion) in
+            let item = self.foodList[indexPath.row]
+            self.selectedItems.remove(item)
+            self.foodList.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .automatic)
+            completion(true)
+        }
+        return UISwipeActionsConfiguration(actions: [deleteAction])
     }
 }

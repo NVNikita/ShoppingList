@@ -12,7 +12,13 @@ final class ShoppingListViewController: UIViewController {
     private var shoppingTableView = UITableView()
     private let addButton = UIButton()
     private let deleteButton = UIButton()
-    private var foodList = ["banana", "pecan", "pasta", "apple", "orange"]
+    private var foodList: [ItemModel] = [
+        ItemModel(name: "banana", isChecked: false),
+        ItemModel(name: "pecan", isChecked: false),
+        ItemModel(name: "pasta", isChecked: false),
+        ItemModel(name: "apple", isChecked: false),
+        ItemModel(name: "orange", isChecked: false)
+    ]
     private var selectedItems: Set<String> = []
     
     override func viewDidLoad() {
@@ -72,22 +78,48 @@ final class ShoppingListViewController: UIViewController {
     }
     
     @objc private func addButtonTapped() {
-        print("addButton tap")
+        let alert = UIAlertController(
+            title: "Добавить",
+            message: nil,
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { textField in
+            textField.placeholder = "Название"
+        }
+        
+        let addAction = UIAlertAction(title: "Добавить", style: .default) { [weak self] _ in
+            guard let self = self,
+                  let text = alert.textFields?.first?.text,
+                  !text.isEmpty else { return }
+            
+            let newItem = ItemModel(name: text, isChecked: false)
+            self.foodList.append(newItem)
+            self.shoppingTableView.reloadData()
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(addAction)
+        
+        present(alert, animated: true)
     }
     
     @objc private func deleteButtonTapped() {
-        
-        let alert = UIAlertController(title: "Подтвердите действие",
-                                      message: "Удалить выбранное из списка?",
-                                      preferredStyle: .alert)
+        let alert = UIAlertController(
+            title: "Удалить выбранное из списка?",
+            message: nil,
+            preferredStyle: .alert
+        )
         
         let buttonNo = UIAlertAction(title: "Нет", style: .cancel)
         let buttonYes = UIAlertAction(title: "Да", style: .default) { [weak self] _ in
-            guard let self else { return }
+            guard let self = self else { return }
             
-            foodList = foodList.filter { self.selectedItems.contains($0) }
-            selectedItems.removeAll()
-            shoppingTableView.reloadData()
+            self.foodList.removeAll { item in
+                self.selectedItems.contains(item.name)
+            }
+            self.selectedItems.removeAll()
+            self.shoppingTableView.reloadData()
         }
         
         alert.addAction(buttonNo)
@@ -110,8 +142,8 @@ extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate
         
         let item = foodList[indexPath.row]
         cell.configure(
-            title: item,
-            isActive: selectedItems.contains(item)
+            title: item.name,
+            isActive: selectedItems.contains(item.name)
         )
         
         return cell
@@ -120,10 +152,10 @@ extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = foodList[indexPath.row]
         
-        if selectedItems.contains(item) {
-            selectedItems.remove(item)
+        if selectedItems.contains(item.name) {
+            selectedItems.remove(item.name)
         } else {
-            selectedItems.insert(item)
+            selectedItems.insert(item.name)
         }
         
         tableView.reloadRows(at: [indexPath], with: .automatic)
@@ -132,7 +164,7 @@ extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate
     func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { (_, _, completion) in
             let item = self.foodList[indexPath.row]
-            self.selectedItems.remove(item)
+            self.selectedItems.remove(item.name)
             self.foodList.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
             completion(true)

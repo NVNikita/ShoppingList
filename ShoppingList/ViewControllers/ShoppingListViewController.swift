@@ -76,9 +76,24 @@ final class ShoppingListViewController: UIViewController {
     }
     
     @objc private func deleteButtonTapped() {
-        foodList = foodList.filter { !selectedItems.contains($0) }
-        selectedItems.removeAll()
-        shoppingTableView.reloadData()
+        
+        let alert = UIAlertController(title: "Подтвердите действие",
+                                      message: "Удалить выбранное из списка?",
+                                      preferredStyle: .alert)
+        
+        let buttonNo = UIAlertAction(title: "Нет", style: .cancel)
+        let buttonYes = UIAlertAction(title: "Да", style: .default) { [weak self] _ in
+            guard let self else { return }
+            
+            foodList = foodList.filter { self.selectedItems.contains($0) }
+            selectedItems.removeAll()
+            shoppingTableView.reloadData()
+        }
+        
+        alert.addAction(buttonNo)
+        alert.addAction(buttonYes)
+        
+        present(alert, animated: true)
     }
 }
 

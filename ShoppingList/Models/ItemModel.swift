@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ItemModel {
+struct ItemModel: Codable {
     let name: String
     var isChecked: Bool
 }

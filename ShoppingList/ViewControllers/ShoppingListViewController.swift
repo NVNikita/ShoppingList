@@ -12,18 +12,13 @@ final class ShoppingListViewController: UIViewController {
     private var shoppingTableView = UITableView()
     private let addButton = UIButton()
     private let deleteButton = UIButton()
-    private var foodList: [ItemModel] = [
-        ItemModel(name: "banana", isChecked: false),
-        ItemModel(name: "pecan", isChecked: false),
-        ItemModel(name: "pasta", isChecked: false),
-        ItemModel(name: "apple", isChecked: false),
-        ItemModel(name: "orange", isChecked: false)
-    ]
+    private var foodList: [ItemModel] = []
     private var selectedItems: Set<String> = []
+    private let savedItemsKey = "savedShoppingList"
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        loadItems()
         setupUI()
         setupTable()
         activateConstraints()
@@ -37,7 +32,6 @@ final class ShoppingListViewController: UIViewController {
     
     private func setupUI() {
         view.backgroundColor = .white
-        
         view.addSubview(shoppingTableView)
         view.addSubview(addButton)
         view.addSubview(deleteButton)
@@ -77,16 +71,30 @@ final class ShoppingListViewController: UIViewController {
         ])
     }
     
-    @objc private func addButtonTapped() {
-        let alert = UIAlertController(
-            title: "Добавить",
-            message: nil,
-            preferredStyle: .alert
-        )
-        
-        alert.addTextField { textField in
-            textField.placeholder = "Название"
+    private func saveItems() {
+        if let encodedData = try? JSONEncoder().encode(foodList) {
+            UserDefaults.standard.set(encodedData, forKey: savedItemsKey)
         }
+    }
+    
+    private func loadItems() {
+        if let savedData = UserDefaults.standard.data(forKey: savedItemsKey),
+           let decodedItems = try? JSONDecoder().decode([ItemModel].self, from: savedData) {
+            foodList = decodedItems
+        } else {
+            foodList = [
+                ItemModel(name: "banana", isChecked: false),
+                ItemModel(name: "pecan", isChecked: false),
+                ItemModel(name: "pasta", isChecked: false),
+                ItemModel(name: "apple", isChecked: false),
+                ItemModel(name: "orange", isChecked: false)
+            ]
+        }
+    }
+    
+    @objc private func addButtonTapped() {
+        let alert = UIAlertController(title: "Добавить", message: nil, preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Название" }
         
         let addAction = UIAlertAction(title: "Добавить", style: .default) { [weak self] _ in
             guard let self = self,
@@ -96,56 +104,42 @@ final class ShoppingListViewController: UIViewController {
             let newItem = ItemModel(name: text, isChecked: false)
             self.foodList.append(newItem)
             self.shoppingTableView.reloadData()
+            self.saveItems()
         }
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         alert.addAction(addAction)
-        
         present(alert, animated: true)
     }
     
     @objc private func deleteButtonTapped() {
-        let alert = UIAlertController(
-            title: "Удалить выбранное из списка?",
-            message: nil,
-            preferredStyle: .alert
-        )
+        let alert = UIAlertController(title: "Удалить выбранное из списка?", message: nil, preferredStyle: .alert)
         
-        let buttonNo = UIAlertAction(title: "Нет", style: .cancel)
         let buttonYes = UIAlertAction(title: "Да", style: .default) { [weak self] _ in
             guard let self = self else { return }
             
-            self.foodList.removeAll { item in
-                self.selectedItems.contains(item.name)
-            }
+            self.foodList.removeAll { self.selectedItems.contains($0.name) }
             self.selectedItems.removeAll()
             self.shoppingTableView.reloadData()
+            self.saveItems()
         }
         
-        alert.addAction(buttonNo)
+        alert.addAction(UIAlertAction(title: "Нет", style: .cancel))
         alert.addAction(buttonYes)
-        
         present(alert, animated: true)
     }
 }
 
 extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate {
-    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return foodList.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! ShoppingListViewCell
-        
         cell.selectionStyle = .none
-        
         let item = foodList[indexPath.row]
-        cell.configure(
-            title: item.name,
-            isActive: selectedItems.contains(item.name)
-        )
-        
+        cell.configure(title: item.name, isActive: selectedItems.contains(item.name))
         return cell
     }
     
@@ -158,6 +152,8 @@ extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate
             selectedItems.insert(item.name)
         }
         
+        foodList[indexPath.row].isChecked.toggle()
+        saveItems()
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
@@ -167,6 +163,7 @@ extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate
             self.selectedItems.remove(item.name)
             self.foodList.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
+            self.saveItems()
             completion(true)
         }
         return UISwipeActionsConfiguration(actions: [deleteAction])

@@ -15,6 +15,8 @@ final class ShoppingListViewController: UIViewController {
     private var foodList: [ItemModel] = []
     private var selectedItems: Set<String> = []
     private let savedItemsKey = "savedShoppingList"
+    private let placeholderImage = UIImageView(image: UIImage(systemName: "pencil.and.outline"))
+    private let placeholderLabel = UILabel()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,13 +34,18 @@ final class ShoppingListViewController: UIViewController {
     
     private func setupUI() {
         view.backgroundColor = .white
+        
         view.addSubview(shoppingTableView)
         view.addSubview(addButton)
         view.addSubview(deleteButton)
+        view.addSubview(placeholderImage)
+        view.addSubview(placeholderLabel)
         
         shoppingTableView.translatesAutoresizingMaskIntoConstraints = false
         addButton.translatesAutoresizingMaskIntoConstraints = false
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
+        placeholderImage.translatesAutoresizingMaskIntoConstraints = false
+        placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         
         shoppingTableView.layer.cornerRadius = 15
         shoppingTableView.layer.masksToBounds = true
@@ -50,6 +57,12 @@ final class ShoppingListViewController: UIViewController {
         deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
         deleteButton.setImage(UIImage(systemName: "trash"), for: .normal)
         deleteButton.tintColor = .systemRed
+        
+        placeholderLabel.text = "Записей пока нет :("
+        placeholderLabel.font = .systemFont(ofSize: 20, weight: .medium)
+        placeholderLabel.textColor = .systemGray
+        
+        placeholderImage.tintColor = .systemPink
     }
     
     private func activateConstraints() {
@@ -67,7 +80,15 @@ final class ShoppingListViewController: UIViewController {
             deleteButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
             deleteButton.heightAnchor.constraint(equalToConstant: 44),
-            deleteButton.widthAnchor.constraint(equalToConstant: 44)
+            deleteButton.widthAnchor.constraint(equalToConstant: 44),
+            
+            placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            placeholderImage.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            placeholderImage.heightAnchor.constraint(equalToConstant: 100),
+            placeholderImage.widthAnchor.constraint(equalToConstant: 100),
+            
+            placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 20),
+            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
     
@@ -81,14 +102,16 @@ final class ShoppingListViewController: UIViewController {
         if let savedData = UserDefaults.standard.data(forKey: savedItemsKey),
            let decodedItems = try? JSONDecoder().decode([ItemModel].self, from: savedData) {
             foodList = decodedItems
+        }
+        
+        if foodList.isEmpty {
+            placeholderImage.isHidden = false
+            placeholderLabel.isHidden = false
+            shoppingTableView.isHidden = true
         } else {
-            foodList = [
-                ItemModel(name: "banana", isChecked: false),
-                ItemModel(name: "pecan", isChecked: false),
-                ItemModel(name: "pasta", isChecked: false),
-                ItemModel(name: "apple", isChecked: false),
-                ItemModel(name: "orange", isChecked: false)
-            ]
+            placeholderImage.isHidden = true
+            placeholderLabel.isHidden = true
+            shoppingTableView.isHidden = false
         }
     }
     
@@ -105,6 +128,12 @@ final class ShoppingListViewController: UIViewController {
             self.foodList.append(newItem)
             self.shoppingTableView.reloadData()
             self.saveItems()
+            
+            if self.foodList.count == 1 {
+                self.placeholderImage.isHidden = true
+                self.placeholderLabel.isHidden = true
+                self.shoppingTableView.isHidden = false
+            }
         }
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
@@ -122,6 +151,12 @@ final class ShoppingListViewController: UIViewController {
             self.selectedItems.removeAll()
             self.shoppingTableView.reloadData()
             self.saveItems()
+            
+            if self.foodList.isEmpty {
+                self.placeholderImage.isHidden = false
+                self.placeholderLabel.isHidden = false
+                self.shoppingTableView.isHidden = true
+            }
         }
         
         alert.addAction(UIAlertAction(title: "Нет", style: .cancel))
@@ -164,6 +199,13 @@ extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate
             self.foodList.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .automatic)
             self.saveItems()
+            
+            if self.foodList.isEmpty {
+                self.placeholderImage.isHidden = false
+                self.placeholderLabel.isHidden = false
+                self.shoppingTableView.isHidden = true
+            }
+            
             completion(true)
         }
         return UISwipeActionsConfiguration(actions: [deleteAction])

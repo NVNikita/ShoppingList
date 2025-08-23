@@ -9,6 +9,8 @@ import UIKit
 
 final class ShoppingListViewController: UIViewController {
     
+    //MARK: - Private Properties
+    
     private var shoppingTableView = UITableView()
     private let addButton = UIButton()
     private let deleteButton = UIButton()
@@ -18,6 +20,8 @@ final class ShoppingListViewController: UIViewController {
     private let placeholderImage = UIImageView(image: UIImage(systemName: "pencil.and.outline"))
     private let placeholderLabel = UILabel()
     
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         loadItems()
@@ -25,6 +29,8 @@ final class ShoppingListViewController: UIViewController {
         setupTable()
         activateConstraints()
     }
+    
+    // MARK: - Private Methods
     
     private func setupTable() {
         shoppingTableView.dataSource = self
@@ -115,6 +121,8 @@ final class ShoppingListViewController: UIViewController {
         }
     }
     
+    // MARK: - Objc Methods
+    
     @objc private func addButtonTapped() {
         let alert = UIAlertController(title: "Добавить", message: nil, preferredStyle: .alert)
         alert.addTextField { $0.placeholder = "Название" }
@@ -164,6 +172,8 @@ final class ShoppingListViewController: UIViewController {
         present(alert, animated: true)
     }
 }
+
+// MARK: Extensions
 
 extension ShoppingListViewController: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
